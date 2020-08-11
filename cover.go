@@ -1,4 +1,4 @@
-// package cover implements an algorithm to solve the minimum set cover problem.
+// Package cover implements an algorithm to solve the minimum set cover problem.
 package cover
 
 import "sort"
@@ -9,70 +9,59 @@ type Element interface{}
 // Subset contains one or more Elements.
 type Subset interface{}
 
+// eset is a set of Elements.
+type eset map[Element]struct{}
+
+// copy returns a copy of es that shares no memory with it.
+func (es eset) copy() eset {
+	m := make(eset)
+	for e := range es {
+		m[e] = struct{}{}
+	}
+	return m
+}
+
+// sset is a set of Subsets.
+type sset map[Subset]struct{}
+
+// copy returns a copy of ss that shares no memory with it.
+func (ss sset) copy() sset {
+	m := make(sset)
+	for s := range ss {
+		m[s] = struct{}{}
+	}
+	return m
+}
+
 // Cover records Subsets and the Elements they contain.
 type Cover struct {
 	// inss and ines store all added Subsets and Elements.
 	// Minimize copies their contents into ss and es to modify.
-	inss map[Subset]map[Element]struct{}
-	ines map[Element]map[Subset]struct{}
+	inss map[Subset]eset
+	ines map[Element]sset
 
 	// ss holds all Subsets not yet determined to be essential or dominated.
 	// Minimize copies the contents of ss from inss and modifies them during simplification.
-	ss map[Subset]map[Element]struct{}
+	ss map[Subset]eset
 
 	// es holds all Elements not yet determined to be covered.
 	// Minimize copies the contents of es from ines and modifies them during simplification.
-	es map[Element]map[Subset]struct{}
+	es map[Element]sset
 
 	// essential contains the Subsets determined by Minimize to be necessary members of the covering set.
-	essential map[Subset]struct{}
+	essential sset
 }
 
 // New returns an empty Cover.
 func New() *Cover {
 	return &Cover{
-		inss: make(map[Subset]map[Element]struct{}),
-		ines: make(map[Element]map[Subset]struct{}),
-		ss:   make(map[Subset]map[Element]struct{}),
-		es:   make(map[Element]map[Subset]struct{}),
+		inss: make(map[Subset]eset),
+		ines: make(map[Element]sset),
+		ss:   make(map[Subset]eset),
+		es:   make(map[Element]sset),
 
-		essential: make(map[Subset]struct{}),
+		essential: make(sset),
 	}
-}
-
-// copy copies the information in c into a new Cover and returns a pointer to it.
-// The returned cover is deeply equal to c but shares no memory with it.
-func (c *Cover) copy() *Cover {
-	cc := New()
-	for s := range c.inss {
-		cc.inss[s] = make(map[Element]struct{})
-		for e := range c.inss[s] {
-			cc.inss[s][e] = struct{}{}
-		}
-	}
-	for e := range c.ines {
-		cc.ines[e] = make(map[Subset]struct{})
-		for s := range c.ines[e] {
-			cc.ines[e][s] = struct{}{}
-		}
-	}
-	for s := range c.ss {
-		cc.ss[s] = make(map[Element]struct{})
-		for e := range c.ss[s] {
-			cc.ss[s][e] = struct{}{}
-		}
-	}
-	for e := range c.es {
-		cc.es[e] = make(map[Subset]struct{})
-		for s := range c.es[e] {
-			cc.es[e][s] = struct{}{}
-		}
-	}
-	cc.essential = make(map[Subset]struct{})
-	for s := range c.essential {
-		cc.essential[s] = struct{}{}
-	}
-	return cc
 }
 
 // Add records that s contains es.
@@ -82,11 +71,11 @@ func (c *Cover) Add(s Subset, es ...Element) {
 		return
 	}
 	if _, ok := c.inss[s]; !ok {
-		c.inss[s] = make(map[Element]struct{}, len(es))
+		c.inss[s] = make(eset, len(es))
 	}
 	for _, e := range es {
 		if _, ok := c.ines[e]; !ok {
-			c.ines[e] = make(map[Subset]struct{})
+			c.ines[e] = make(sset)
 		}
 		c.inss[s][e] = struct{}{}
 		c.ines[e][s] = struct{}{}
@@ -96,21 +85,15 @@ func (c *Cover) Add(s Subset, es ...Element) {
 
 // initialize prepares c for minimization by copying c.inss into c.ss and c.ines into c.es and clearing c.essential.
 func (c *Cover) initialize() {
-	c.ss = make(map[Subset]map[Element]struct{}, len(c.inss))
+	c.ss = make(map[Subset]eset, len(c.inss))
 	for s := range c.inss {
-		c.ss[s] = make(map[Element]struct{}, len(c.inss[s]))
-		for e := range c.inss[s] {
-			c.ss[s][e] = struct{}{}
-		}
+		c.ss[s] = c.inss[s].copy()
 	}
-	c.es = make(map[Element]map[Subset]struct{}, len(c.ines))
+	c.es = make(map[Element]sset, len(c.ines))
 	for e := range c.ines {
-		c.es[e] = make(map[Subset]struct{}, len(c.ines[e]))
-		for s := range c.ines[e] {
-			c.es[e][s] = struct{}{}
-		}
+		c.es[e] = c.ines[e].copy()
 	}
-	c.essential = make(map[Subset]struct{}, len(c.ss))
+	c.essential = make(sset, len(c.ss))
 }
 
 // Minimize returns all minimum-length combinations of Subsets that cover every Element.
@@ -118,14 +101,14 @@ func (c *Cover) initialize() {
 func (c *Cover) Minimize() [][]Subset {
 	c.initialize()
 
-	ok := c.simplify()
+	isUnique := c.simplify()
 
 	// ess holds the essential Subsets for returning as a slice.
 	var ess []Subset
 	for s := range c.essential {
 		ess = append(ess, s)
 	}
-	if ok {
+	if isUnique {
 		// The essential Subsets constitute a unique covering set.
 		return [][]Subset{ess}
 	}
