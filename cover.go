@@ -1,7 +1,9 @@
 // Package cover implements an algorithm to solve the minimum set cover problem.
 package cover
 
-import "sort"
+import (
+	"sort"
+)
 
 // Element is contained by one or more Subsets.
 type Element interface{}
@@ -114,49 +116,80 @@ func (c *Cover) Minimize() [][]Subset {
 	}
 
 	// At least one non-essential Subset is required to cover at least one Element.
-	// Simplest and slowest method: search through all Subset unions, generate all covering sets, sort by length, and return only the shortest.
+	// Search all Subset unions of length 1, then 2, and so on until covering sets are found.
 	var covers [][]Subset
 	ss := make([]Subset, 0, len(c.ss))
 	for s := range c.ss {
 		ss = append(ss, s)
 	}
-N:
-	for n := 1; n < 1<<len(ss); n++ {
-		for e := range c.es {
-			// Check whether any Subsets in ss cover e.
-			// Consider ss[i] if the ith binary digit of n is nonzero.
+	// Sort the Subsets to search in order of coverage, starting with the largest.
+	sort.Slice(ss, func(i, j int) bool { return len(c.ss[ss[i]]) > len(c.ss[ss[j]]) })
+
+	for w := 1; w <= len(ss); w++ {
+		b := make([]bool, len(ss))
+		for i := 0; i < w; i++ {
+			b[i] = true
+		}
+		for {
 			var ok bool
-			for i := range ss {
-				if n&(1<<i) == 0 {
-					continue
+			for e := range c.es {
+				// Check whether any Subsets in ss cover e.
+				// b[i] indicates whether to consider ss[i].
+				ok = false
+				for i := range ss {
+					if !b[i] {
+						continue
+					}
+					if _, ok = c.es[e][ss[i]]; ok {
+						break
+					}
 				}
-				if _, ok = c.es[e][ss[i]]; ok {
+				if !ok {
 					break
 				}
 			}
-			if !ok {
-				continue N
+
+			if ok {
+				// n encodes a valid covering set: all Elements are covered by at least one of the considered Subsets.
+				cs := append([]Subset{}, ess...)
+				for i := range ss {
+					if !b[i] {
+						continue
+					}
+					cs = append(cs, ss[i])
+				}
+				covers = append(covers, cs)
+			}
+			if !nextPerm(b) {
+				break
 			}
 		}
-
-		// n encodes a valid covering set: all Elements are covered by at least one of the considered Subsets.
-		cs := append([]Subset{}, ess...)
-		for i := range ss {
-			if n&(1<<i) == 0 {
-				continue
-			}
-			cs = append(cs, ss[i])
-		}
-		covers = append(covers, cs)
-	}
-
-	sort.Slice(covers, func(i, j int) bool { return len(covers[i]) < len(covers[j]) })
-	for i := range covers {
-		if len(covers[i]) > len(covers[0]) {
-			return covers[:i]
+		if len(covers) > 0 {
+			break
 		}
 	}
+
 	return covers
+}
+
+// nextPerm implements Knuth's Algorithm L to generate the next lexicographic permutation of b.
+// It reports whether there are more permutations remaining.
+func nextPerm(b []bool) bool {
+	j := len(b) - 2
+	for ; !b[j] || b[j+1]; j-- {
+		if j == 0 {
+			return false
+		}
+	}
+	l := len(b) - 1
+	for b[l] {
+		l--
+	}
+	b[j], b[l] = b[l], b[j]
+	for k, l := j+1, len(b)-1; k < l; k, l = k+1, l-1 {
+		b[k], b[l] = b[l], b[k]
+	}
+	return true
 }
 
 // simplify simplifies c by identifying all essential Subsets.
