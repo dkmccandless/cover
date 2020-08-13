@@ -469,6 +469,70 @@ var coverTests = map[string]struct {
 		simok: true,
 		min:   [][]Subset{{"A", "B"}},
 	},
+	"1 Subset contains 2 Elements": {
+		c: fromInputs(input{"A", []Element{"x", "y"}}),
+		s: &Cover{
+			inss: map[Subset]eset{"A": emap("x", "y")},
+			ines: map[Element]sset{"x": smap("A"), "y": smap("A")},
+			ss:   map[Subset]eset{"A": emap("x", "y")},
+			es:   map[Element]sset{"x": smap("A"), "y": smap("A")},
+
+			essential: smap(),
+		},
+		sok: false,
+		e: &Cover{
+			inss: map[Subset]eset{"A": emap("x", "y")},
+			ines: map[Element]sset{"x": smap("A"), "y": smap("A")},
+			ss:   map[Subset]eset{},
+			es:   map[Element]sset{},
+
+			essential: smap("A"),
+		},
+		eok: true,
+		sim: &Cover{inss: map[Subset]eset{"A": emap("x", "y")},
+			ines: map[Element]sset{"x": smap("A"), "y": smap("A")},
+			ss:   map[Subset]eset{},
+			es:   map[Element]sset{},
+
+			essential: smap("A"),
+		},
+		simok: true,
+		min:   [][]Subset{{"A"}},
+	},
+	"2 Subsets contain 1 Element": {
+		c: fromInputs(
+			input{"A", []Element{"x"}},
+			input{"B", []Element{"x"}},
+		),
+		s: &Cover{
+			inss: map[Subset]eset{"A": emap("x"), "B": emap("x")},
+			ines: map[Element]sset{"x": smap("A", "B")},
+			ss:   map[Subset]eset{"A": emap("x"), "B": emap("x")},
+			es:   map[Element]sset{"x": smap("A", "B")},
+
+			essential: smap(),
+		},
+		sok: false,
+		e: &Cover{
+			inss: map[Subset]eset{"A": emap("x"), "B": emap("x")},
+			ines: map[Element]sset{"x": smap("A", "B")},
+			ss:   map[Subset]eset{"A": emap("x"), "B": emap("x")},
+			es:   map[Element]sset{"x": smap("A", "B")},
+
+			essential: smap(),
+		},
+		eok: false,
+		sim: &Cover{
+			inss: map[Subset]eset{"A": emap("x"), "B": emap("x")},
+			ines: map[Element]sset{"x": smap("A", "B")},
+			ss:   map[Subset]eset{"A": emap("x"), "B": emap("x")},
+			es:   map[Element]sset{"x": smap("A", "B")},
+
+			essential: smap(),
+		},
+		simok: false,
+		min:   [][]Subset{{"A"}, {"B"}},
+	},
 	"B contains A": {
 		c: fromInputs(
 			input{"A", []Element{"x"}},
