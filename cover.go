@@ -3,6 +3,8 @@ package cover
 
 import (
 	"sort"
+
+	"github.com/dkmccandless/bipartite"
 )
 
 // Element is contained by one or more Subsets.
@@ -37,18 +39,14 @@ func (ss sset) copy() sset {
 
 // Cover records Subsets and the Elements they contain.
 type Cover struct {
-	// inss and ines store all added Subsets and Elements.
-	// Minimize copies their contents into ss and es to modify.
-	inss map[Subset]eset
-	ines map[Element]sset
+	// in stores all added Subsets and Elements.
+	// Minimize copies their contents into m to modify.
+	in *bipartite.Graph
 
-	// ss holds all Subsets not yet determined to be essential or dominated.
-	// Minimize copies the contents of ss from inss and modifies them during simplification.
-	ss map[Subset]eset
-
-	// es holds all Elements not yet determined to be covered.
-	// Minimize copies the contents of es from ines and modifies them during simplification.
-	es map[Element]sset
+	// m holds all Subsets not yet determined to be essential or dominated,
+	// and all Elements not yet determined to be covered.
+	// Minimize copies the contents of m from in and modifies them during simplification.
+	m *bipartite.Graph
 
 	// essential contains the Subsets determined by Minimize to be necessary members of the covering set.
 	essential sset
@@ -57,10 +55,8 @@ type Cover struct {
 // New returns an empty Cover.
 func New() *Cover {
 	return &Cover{
-		inss: make(map[Subset]eset),
-		ines: make(map[Element]sset),
-		ss:   make(map[Subset]eset),
-		es:   make(map[Element]sset),
+		in: bipartite.New(),
+		m:  bipartite.New(),
 
 		essential: make(sset),
 	}
@@ -69,39 +65,16 @@ func New() *Cover {
 // Add records that s contains es.
 // If es is empty, Add is a no-op.
 func (c *Cover) Add(s Subset, es ...Element) {
-	if len(es) == 0 {
-		return
-	}
-	if _, ok := c.inss[s]; !ok {
-		c.inss[s] = make(eset, len(es))
-	}
 	for _, e := range es {
-		if _, ok := c.ines[e]; !ok {
-			c.ines[e] = make(sset)
-		}
-		c.inss[s][e] = struct{}{}
-		c.ines[e][s] = struct{}{}
+		c.in.Add(s, e)
 	}
-	// Invariant: All maps are non-empty, and inss[s] contains e if and only if ines[e] contains s.
-}
-
-// initialize prepares c for minimization by copying c.inss into c.ss and c.ines into c.es and clearing c.essential.
-func (c *Cover) initialize() {
-	c.ss = make(map[Subset]eset, len(c.inss))
-	for s := range c.inss {
-		c.ss[s] = c.inss[s].copy()
-	}
-	c.es = make(map[Element]sset, len(c.ines))
-	for e := range c.ines {
-		c.es[e] = c.ines[e].copy()
-	}
-	c.essential = make(sset, len(c.ss))
 }
 
 // Minimize returns all minimum-length combinations of Subsets that cover every Element.
 // In general, its complexity increases exponentially with the number of Elements.
 func (c *Cover) Minimize() [][]Subset {
-	c.initialize()
+	c.m = bipartite.Copy(c.in)
+	c.essential = make(sset, c.m.NA())
 
 	isUnique := c.simplify()
 
@@ -118,12 +91,9 @@ func (c *Cover) Minimize() [][]Subset {
 	// At least one non-essential Subset is required to cover at least one Element.
 	// Search all Subset unions of length 1, then 2, and so on until covering sets are found.
 	var covers [][]Subset
-	ss := make([]Subset, 0, len(c.ss))
-	for s := range c.ss {
-		ss = append(ss, s)
-	}
+	ss := c.m.As()
 	// Sort the Subsets to search in order of coverage, starting with the largest.
-	sort.Slice(ss, func(i, j int) bool { return len(c.ss[ss[i]]) > len(c.ss[ss[j]]) })
+	sort.Slice(ss, func(i, j int) bool { return c.m.DegA(ss[i]) > c.m.DegA(ss[j]) })
 
 	for w := 1; w <= len(ss); w++ {
 		b := make([]bool, len(ss))
@@ -132,15 +102,15 @@ func (c *Cover) Minimize() [][]Subset {
 		}
 		for {
 			var ok bool
-			for e := range c.es {
+			for _, e := range c.m.Bs() {
 				// Check whether any Subsets in ss cover e.
 				// b[i] indicates whether to consider ss[i].
 				ok = false
-				for i := range ss {
+				for i, s := range ss {
 					if !b[i] {
 						continue
 					}
-					if _, ok = c.es[e][ss[i]]; ok {
+					if ok = c.m.Adjacent(s, e); ok {
 						break
 					}
 				}
@@ -150,8 +120,8 @@ func (c *Cover) Minimize() [][]Subset {
 			}
 
 			if ok {
-				// n encodes a valid covering set: all Elements are covered by at least one of the considered Subsets.
-				cs := append([]Subset{}, ess...)
+				// b encodes a valid covering set: all Elements are covered by at least one of the considered Subsets.
+				cs := append(make([]Subset, 0, len(ess)+w), ess...)
 				for i := range ss {
 					if !b[i] {
 						continue
@@ -175,6 +145,9 @@ func (c *Cover) Minimize() [][]Subset {
 // nextPerm implements Knuth's Algorithm L to generate the next lexicographic permutation of b.
 // It reports whether there are more permutations remaining.
 func nextPerm(b []bool) bool {
+	if len(b) < 2 {
+		return false
+	}
 	j := len(b) - 2
 	for ; !b[j] || b[j+1]; j-- {
 		if j == 0 {
@@ -199,79 +172,61 @@ func (c *Cover) simplify() bool {
 	// reduceS removes all dominated Subsets but may reveal another Subset as essential;
 	// reduceE removes all essential Subsets and the Elements they contain, but may cause another Subset to become dominated.
 	// Call them in alternation: c is fully simplified when either does not apply any reductions,
-	// provided that they have both been called at least once.
+	// provided that each has been called at least once.
 	c.reduceS()
 	for c.reduceE() && c.reduceS() {
 	}
-	return len(c.es) == 0
+	return c.m.NB() == 0
 }
 
 // reduceS reduces c by removing dominated Subsets and reports whether any Subsets were removed.
-// When reduceP returns, c contains no dominated Subsets.
-// The removal of a dominated Subset may expose another Subset as essential.
+// When reduceS returns, c contains no dominated Subsets.
+// The removal of a dominated Subset may reveal another Subset as essential.
 func (c *Cover) reduceS() bool {
 	var ok bool
-	for d := range c.ss {
-		for s := range c.ss {
+	for _, d := range c.m.As() {
+		for _, s := range c.m.As() {
 			if d == s || !c.dominates(d, s) {
 				continue
 			}
 			// s will not appear in any minimal covering solution because d's coverage is a proper superset.
-			c.removeS(s)
+			c.m.RemoveA(s)
 			ok = true
 		}
 	}
 	return ok
 }
 
-// removeS removes s from c.ss and c.es.
-func (c *Cover) removeS(s Subset) {
-	for e := range c.ss[s] {
-		delete(c.es[e], s)
-	}
-	delete(c.ss, s)
-}
-
-// dominates reports whether Subset a dominates Subset b; that is, whether a's Elements are a proper superset of b's.
-func (c *Cover) dominates(a, b Subset) bool {
-	for e := range c.ss[b] {
-		if _, ok := c.ss[a][e]; !ok {
+// dominates reports whether d dominates s; that is, whether d's Elements are a proper superset of s's.
+func (c *Cover) dominates(d, s Subset) bool {
+	for _, e := range c.m.AdjToA(s) {
+		if !c.m.Adjacent(d, e) {
 			return false
 		}
 	}
-	return len(c.ss[a]) > len(c.ss[b])
+	return c.m.DegA(d) > c.m.DegA(s)
 }
 
-// reduceE reduces c by identifying essential Subsets, moving them from c.ss to c.essential,
-// and removing their Elements from c.es, and reports whether any Elements were removed.
-// When reduceM returns, all Elements in c are contained by at least two Subsets.
+// reduceE reduces c by identifying essential Subsets, moving them from c.m to c.essential,
+// and removing their Elements from c.m, and reports whether any Elements were removed.
+// When reduceE returns, all Elements in c are contained by at least two Subsets.
 // The removal of an Element may cause a Subset to become dominated.
 func (c *Cover) reduceE() bool {
 	var ok bool
-	for e := range c.es {
-		if len(c.es[e]) != 1 {
+	for _, e := range c.m.Bs() {
+		if c.m.DegB(e) != 1 {
 			continue
 		}
 		ok = true
 
 		// e is contained by exactly one Subset, which is therefore essential.
 		// Move it to c.essential and remove it and all Elements it covers.
-		var s Subset
-		for s = range c.es[e] {
-		}
-		for ee := range c.ss[s] {
-			c.removeE(ee)
+		s := c.m.AdjToB(e)[0]
+		for _, ee := range c.m.AdjToA(s) {
+			c.m.RemoveB(ee)
 		}
 		c.essential[s] = struct{}{}
-		c.removeS(s)
+		c.m.RemoveA(s)
 	}
 	return ok
-}
-
-// removeE removes e from c.
-func (c *Cover) removeE(e Element) {
-	for s := range c.es[e] {
-		delete(c.ss[s], e)
-	}
-	delete(c.es, e)
 }

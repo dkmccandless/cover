@@ -3,6 +3,8 @@ package cover
 import (
 	"reflect"
 	"testing"
+
+	"github.com/dkmccandless/bipartite"
 )
 
 // smap returns an sset populated with ss.
@@ -29,14 +31,15 @@ type input struct {
 	es []Element
 }
 
-// fromInputs returns an initialized Cover populated with inputs.
-func fromInputs(inputs ...input) *Cover {
-	c := New()
+// fromInputs returns a bipartite.Graph populated with inputs.
+func fromInputs(inputs ...input) *bipartite.Graph {
+	g := bipartite.New()
 	for _, in := range inputs {
-		c.Add(in.s, in.es...)
+		for _, e := range in.es {
+			g.Add(in.s, e)
+		}
 	}
-	c.initialize()
-	return c
+	return g
 }
 
 func TestAdd(t *testing.T) {
@@ -57,10 +60,10 @@ func TestAdd(t *testing.T) {
 				{true, []Element{true}},
 			},
 			&Cover{
-				inss: map[Subset]eset{true: emap(true)},
-				ines: map[Element]sset{true: smap(true)},
-				ss:   map[Subset]eset{},
-				es:   map[Element]sset{},
+				in: fromInputs(
+					input{true, []Element{true}},
+				),
+				m: bipartite.New(),
 
 				essential: smap(),
 			},
@@ -71,17 +74,10 @@ func TestAdd(t *testing.T) {
 				{"Powers of 2", []Element{1, 2, 4, 8}},
 			},
 			&Cover{
-				inss: map[Subset]eset{
-					"Powers of 2": emap(1, 2, 4, 8),
-				},
-				ines: map[Element]sset{
-					1: smap("Powers of 2"),
-					2: smap("Powers of 2"),
-					4: smap("Powers of 2"),
-					8: smap("Powers of 2"),
-				},
-				ss: map[Subset]eset{},
-				es: map[Element]sset{},
+				in: fromInputs(
+					input{"Powers of 2", []Element{1, 2, 4, 8}},
+				),
+				m: bipartite.New(),
 
 				essential: smap(),
 			},
@@ -93,17 +89,10 @@ func TestAdd(t *testing.T) {
 				{"Powers of 2", []Element{}},
 			},
 			&Cover{
-				inss: map[Subset]eset{
-					"Powers of 2": emap(1, 2, 4, 8),
-				},
-				ines: map[Element]sset{
-					1: smap("Powers of 2"),
-					2: smap("Powers of 2"),
-					4: smap("Powers of 2"),
-					8: smap("Powers of 2"),
-				},
-				ss: map[Subset]eset{},
-				es: map[Element]sset{},
+				in: fromInputs(
+					input{"Powers of 2", []Element{1, 2, 4, 8}},
+				),
+				m: bipartite.New(),
 
 				essential: smap(),
 			},
@@ -115,17 +104,10 @@ func TestAdd(t *testing.T) {
 				{"Powers of 2", []Element{1, 2, 4, 8}},
 			},
 			&Cover{
-				inss: map[Subset]eset{
-					"Powers of 2": emap(1, 2, 4, 8),
-				},
-				ines: map[Element]sset{
-					1: smap("Powers of 2"),
-					2: smap("Powers of 2"),
-					4: smap("Powers of 2"),
-					8: smap("Powers of 2"),
-				},
-				ss: map[Subset]eset{},
-				es: map[Element]sset{},
+				in: fromInputs(
+					input{"Powers of 2", []Element{1, 2, 4, 8}},
+				),
+				m: bipartite.New(),
 
 				essential: smap(),
 			},
@@ -137,15 +119,11 @@ func TestAdd(t *testing.T) {
 				{"Even primes", []Element{2}},
 			},
 			&Cover{
-				inss: map[Subset]eset{
-					"Powers of 2": emap(2),
-					"Even primes": emap(2),
-				},
-				ines: map[Element]sset{
-					2: smap("Powers of 2", "Even primes"),
-				},
-				ss: map[Subset]eset{},
-				es: map[Element]sset{},
+				in: fromInputs(
+					input{"Powers of 2", []Element{2}},
+					input{"Even primes", []Element{2}},
+				),
+				m: bipartite.New(),
 
 				essential: smap(),
 			},
@@ -157,21 +135,11 @@ func TestAdd(t *testing.T) {
 				{"Fibonacci numbers", []Element{0, 1, 2, 3, 5, 8}},
 			},
 			&Cover{
-				inss: map[Subset]eset{
-					"Powers of 2":       emap(1, 2, 4, 8),
-					"Fibonacci numbers": emap(0, 1, 2, 3, 5, 8),
-				},
-				ines: map[Element]sset{
-					0: smap("Fibonacci numbers"),
-					1: smap("Powers of 2", "Fibonacci numbers"),
-					2: smap("Powers of 2", "Fibonacci numbers"),
-					3: smap("Fibonacci numbers"),
-					4: smap("Powers of 2"),
-					5: smap("Fibonacci numbers"),
-					8: smap("Powers of 2", "Fibonacci numbers"),
-				},
-				ss: map[Subset]eset{},
-				es: map[Element]sset{},
+				in: fromInputs(
+					input{"Powers of 2", []Element{1, 2, 4, 8}},
+					input{"Fibonacci numbers", []Element{0, 1, 2, 3, 5, 8}},
+				),
+				m: bipartite.New(),
 
 				essential: smap(),
 			},
@@ -184,21 +152,11 @@ func TestAdd(t *testing.T) {
 				{"Odd perfect numbers", []Element{}},
 			},
 			&Cover{
-				inss: map[Subset]eset{
-					"Powers of 2":       emap(1, 2, 4, 8),
-					"Fibonacci numbers": emap(0, 1, 2, 3, 5, 8),
-				},
-				ines: map[Element]sset{
-					0: smap("Fibonacci numbers"),
-					1: smap("Powers of 2", "Fibonacci numbers"),
-					2: smap("Powers of 2", "Fibonacci numbers"),
-					3: smap("Fibonacci numbers"),
-					4: smap("Powers of 2"),
-					5: smap("Fibonacci numbers"),
-					8: smap("Powers of 2", "Fibonacci numbers"),
-				},
-				ss: map[Subset]eset{},
-				es: map[Element]sset{},
+				in: fromInputs(
+					input{"Powers of 2", []Element{1, 2, 4, 8}},
+					input{"Fibonacci numbers", []Element{0, 1, 2, 3, 5, 8}},
+				),
+				m: bipartite.New(),
 
 				essential: smap(),
 			},
@@ -211,22 +169,11 @@ func TestAdd(t *testing.T) {
 				{"Fibonacci numbers", []Element{13}},
 			},
 			&Cover{
-				inss: map[Subset]eset{
-					"Powers of 2":       emap(1, 2, 4, 8),
-					"Fibonacci numbers": emap(0, 1, 2, 3, 5, 8, 13),
-				},
-				ines: map[Element]sset{
-					0:  smap("Fibonacci numbers"),
-					1:  smap("Powers of 2", "Fibonacci numbers"),
-					2:  smap("Powers of 2", "Fibonacci numbers"),
-					3:  smap("Fibonacci numbers"),
-					4:  smap("Powers of 2"),
-					5:  smap("Fibonacci numbers"),
-					8:  smap("Powers of 2", "Fibonacci numbers"),
-					13: smap("Fibonacci numbers"),
-				},
-				ss: map[Subset]eset{},
-				es: map[Element]sset{},
+				in: fromInputs(
+					input{"Powers of 2", []Element{1, 2, 4, 8}},
+					input{"Fibonacci numbers", []Element{0, 1, 2, 3, 5, 8, 13}},
+				),
+				m: bipartite.New(),
 
 				essential: smap(),
 			},
@@ -248,32 +195,62 @@ func TestDominates(t *testing.T) {
 		dom map[Subset]sset
 	}{
 		{
-			fromInputs(input{true, []Element{true}}),
+			&Cover{
+				in: fromInputs(input{true, []Element{true}}),
+				m:  fromInputs(input{true, []Element{true}}),
+
+				essential: smap(),
+			},
 			map[Subset]sset{},
 		},
 		{
-			fromInputs(
-				input{"A", []Element{"x"}},
-				input{"B", []Element{"y"}},
-			),
+			&Cover{
+				in: fromInputs(
+					input{"A", []Element{"x"}},
+					input{"B", []Element{"y"}},
+				),
+				m: fromInputs(
+					input{"A", []Element{"x"}},
+					input{"B", []Element{"y"}},
+				),
+				essential: smap(),
+			},
 			map[Subset]sset{},
 		},
 		{
-			fromInputs(
-				input{"A", []Element{"x"}},
-				input{"B", []Element{"x", "y", "z"}},
-			),
+			&Cover{
+				in: fromInputs(
+					input{"A", []Element{"x"}},
+					input{"B", []Element{"x", "y", "z"}},
+				),
+				m: fromInputs(
+					input{"A", []Element{"x"}},
+					input{"B", []Element{"x", "y", "z"}},
+				),
+				essential: smap(),
+			},
 			map[Subset]sset{"B": smap("A")},
 		},
 		{
-			fromInputs(
-				input{"A", []Element{2}},
-				input{"B", []Element{2, 6}},
-				input{"C", []Element{2, 6}},
-				input{"D", []Element{1, 2, 4}},
-				input{"E", []Element{3, 5, 7}},
-				input{"F", []Element{0, 1, 2, 4, 7}},
-			),
+			&Cover{
+				in: fromInputs(
+					input{"A", []Element{2}},
+					input{"B", []Element{2, 6}},
+					input{"C", []Element{2, 6}},
+					input{"D", []Element{1, 2, 4}},
+					input{"E", []Element{3, 5, 7}},
+					input{"F", []Element{0, 1, 2, 4, 7}},
+				),
+				m: fromInputs(
+					input{"A", []Element{2}},
+					input{"B", []Element{2, 6}},
+					input{"C", []Element{2, 6}},
+					input{"D", []Element{1, 2, 4}},
+					input{"E", []Element{3, 5, 7}},
+					input{"F", []Element{0, 1, 2, 4, 7}},
+				),
+				essential: smap(),
+			},
 			map[Subset]sset{
 				"B": smap("A"),
 				"C": smap("A"),
@@ -282,8 +259,8 @@ func TestDominates(t *testing.T) {
 			},
 		},
 	} {
-		for a := range test.c.ss {
-			for b := range test.c.ss {
+		for a := range test.c.m.As() {
+			for b := range test.c.m.As() {
 				_, want := test.dom[a][b]
 				if got := test.c.dominates(a, b); got != want {
 					t.Errorf("dominates(%+v, %v, %v): got %v, want %v", test.c, a, b, got, want)
@@ -296,21 +273,12 @@ func TestDominates(t *testing.T) {
 // copy copies the information in c into a new Cover and returns a pointer to it.
 // The returned cover is deeply equal to c but shares no memory with it.
 func (c *Cover) copy() *Cover {
-	cc := New()
-	for s := range c.inss {
-		cc.inss[s] = c.inss[s].copy()
+	return &Cover{
+		in: bipartite.Copy(c.in),
+		m:  bipartite.Copy(c.m),
+
+		essential: c.essential.copy(),
 	}
-	for e := range c.ines {
-		cc.ines[e] = c.ines[e].copy()
-	}
-	for s := range c.ss {
-		cc.ss[s] = c.ss[s].copy()
-	}
-	for e := range c.es {
-		cc.es[e] = c.es[e].copy()
-	}
-	cc.essential = c.essential.copy()
-	return cc
 }
 
 func TestCopy(t *testing.T) {
@@ -405,30 +373,29 @@ var coverTests = map[string]struct {
 		min: [][]Subset{{}},
 	},
 	"tautology": {
-		c: fromInputs(input{true, []Element{true}}),
+		c: &Cover{
+			in: fromInputs(input{true, []Element{true}}),
+			m:  fromInputs(input{true, []Element{true}}),
+
+			essential: smap(),
+		},
 		s: &Cover{
-			inss: map[Subset]eset{true: emap(true)},
-			ines: map[Element]sset{true: smap(true)},
-			ss:   map[Subset]eset{true: emap(true)},
-			es:   map[Element]sset{true: smap(true)},
+			in: fromInputs(input{true, []Element{true}}),
+			m:  fromInputs(input{true, []Element{true}}),
 
 			essential: smap(),
 		},
 		sok: false,
 		e: &Cover{
-			inss: map[Subset]eset{true: emap(true)},
-			ines: map[Element]sset{true: smap(true)},
-			ss:   map[Subset]eset{},
-			es:   map[Element]sset{},
+			in: fromInputs(input{true, []Element{true}}),
+			m:  bipartite.New(),
 
 			essential: smap(true),
 		},
 		eok: true,
 		sim: &Cover{
-			inss: map[Subset]eset{true: emap(true)},
-			ines: map[Element]sset{true: smap(true)},
-			ss:   map[Subset]eset{},
-			es:   map[Element]sset{},
+			in: fromInputs(input{true, []Element{true}}),
+			m:  bipartite.New(),
 
 			essential: smap(true),
 		},
@@ -436,33 +403,45 @@ var coverTests = map[string]struct {
 		min:   [][]Subset{{true}},
 	},
 	"disjoint A and B": {
-		c: fromInputs(
-			input{"A", []Element{"x"}},
-			input{"B", []Element{"y"}},
-		),
+		c: &Cover{
+			in: fromInputs(
+				input{"A", []Element{"x"}},
+				input{"B", []Element{"y"}},
+			),
+			m: fromInputs(
+				input{"A", []Element{"x"}},
+				input{"B", []Element{"y"}},
+			),
+			essential: smap(),
+		},
 		s: &Cover{
-			inss: map[Subset]eset{"A": emap("x"), "B": emap("y")},
-			ines: map[Element]sset{"x": smap("A"), "y": smap("B")},
-			ss:   map[Subset]eset{"A": emap("x"), "B": emap("y")},
-			es:   map[Element]sset{"x": smap("A"), "y": smap("B")},
-
+			in: fromInputs(
+				input{"A", []Element{"x"}},
+				input{"B", []Element{"y"}},
+			),
+			m: fromInputs(
+				input{"A", []Element{"x"}},
+				input{"B", []Element{"y"}},
+			),
 			essential: smap(),
 		},
 		sok: false,
 		e: &Cover{
-			inss: map[Subset]eset{"A": emap("x"), "B": emap("y")},
-			ines: map[Element]sset{"x": smap("A"), "y": smap("B")},
-			ss:   map[Subset]eset{},
-			es:   map[Element]sset{},
+			in: fromInputs(
+				input{"A", []Element{"x"}},
+				input{"B", []Element{"y"}},
+			),
+			m: bipartite.New(),
 
 			essential: smap("A", "B"),
 		},
 		eok: true,
 		sim: &Cover{
-			inss: map[Subset]eset{"A": emap("x"), "B": emap("y")},
-			ines: map[Element]sset{"x": smap("A"), "y": smap("B")},
-			ss:   map[Subset]eset{},
-			es:   map[Element]sset{},
+			in: fromInputs(
+				input{"A", []Element{"x"}},
+				input{"B", []Element{"y"}},
+			),
+			m: bipartite.New(),
 
 			essential: smap("A", "B"),
 		},
@@ -470,29 +449,29 @@ var coverTests = map[string]struct {
 		min:   [][]Subset{{"A", "B"}},
 	},
 	"1 Subset contains 2 Elements": {
-		c: fromInputs(input{"A", []Element{"x", "y"}}),
+		c: &Cover{
+			in: fromInputs(input{"A", []Element{"x", "y"}}),
+			m:  fromInputs(input{"A", []Element{"x", "y"}}),
+
+			essential: smap(),
+		},
 		s: &Cover{
-			inss: map[Subset]eset{"A": emap("x", "y")},
-			ines: map[Element]sset{"x": smap("A"), "y": smap("A")},
-			ss:   map[Subset]eset{"A": emap("x", "y")},
-			es:   map[Element]sset{"x": smap("A"), "y": smap("A")},
+			in: fromInputs(input{"A", []Element{"x", "y"}}),
+			m:  fromInputs(input{"A", []Element{"x", "y"}}),
 
 			essential: smap(),
 		},
 		sok: false,
 		e: &Cover{
-			inss: map[Subset]eset{"A": emap("x", "y")},
-			ines: map[Element]sset{"x": smap("A"), "y": smap("A")},
-			ss:   map[Subset]eset{},
-			es:   map[Element]sset{},
+			in: fromInputs(input{"A", []Element{"x", "y"}}),
+			m:  bipartite.New(),
 
 			essential: smap("A"),
 		},
 		eok: true,
-		sim: &Cover{inss: map[Subset]eset{"A": emap("x", "y")},
-			ines: map[Element]sset{"x": smap("A"), "y": smap("A")},
-			ss:   map[Subset]eset{},
-			es:   map[Element]sset{},
+		sim: &Cover{
+			in: fromInputs(input{"A", []Element{"x", "y"}}),
+			m:  bipartite.New(),
 
 			essential: smap("A"),
 		},
@@ -500,67 +479,94 @@ var coverTests = map[string]struct {
 		min:   [][]Subset{{"A"}},
 	},
 	"2 Subsets contain 1 Element": {
-		c: fromInputs(
-			input{"A", []Element{"x"}},
-			input{"B", []Element{"x"}},
-		),
+		c: &Cover{
+			in: fromInputs(
+				input{"A", []Element{"x"}},
+				input{"B", []Element{"x"}},
+			),
+			m: fromInputs(
+				input{"A", []Element{"x"}},
+				input{"B", []Element{"x"}},
+			),
+			essential: smap(),
+		},
 		s: &Cover{
-			inss: map[Subset]eset{"A": emap("x"), "B": emap("x")},
-			ines: map[Element]sset{"x": smap("A", "B")},
-			ss:   map[Subset]eset{"A": emap("x"), "B": emap("x")},
-			es:   map[Element]sset{"x": smap("A", "B")},
-
+			in: fromInputs(
+				input{"A", []Element{"x"}},
+				input{"B", []Element{"x"}},
+			),
+			m: fromInputs(
+				input{"A", []Element{"x"}},
+				input{"B", []Element{"x"}},
+			),
 			essential: smap(),
 		},
 		sok: false,
 		e: &Cover{
-			inss: map[Subset]eset{"A": emap("x"), "B": emap("x")},
-			ines: map[Element]sset{"x": smap("A", "B")},
-			ss:   map[Subset]eset{"A": emap("x"), "B": emap("x")},
-			es:   map[Element]sset{"x": smap("A", "B")},
-
+			in: fromInputs(
+				input{"A", []Element{"x"}},
+				input{"B", []Element{"x"}},
+			),
+			m: fromInputs(
+				input{"A", []Element{"x"}},
+				input{"B", []Element{"x"}},
+			),
 			essential: smap(),
 		},
 		eok: false,
 		sim: &Cover{
-			inss: map[Subset]eset{"A": emap("x"), "B": emap("x")},
-			ines: map[Element]sset{"x": smap("A", "B")},
-			ss:   map[Subset]eset{"A": emap("x"), "B": emap("x")},
-			es:   map[Element]sset{"x": smap("A", "B")},
-
+			in: fromInputs(
+				input{"A", []Element{"x"}},
+				input{"B", []Element{"x"}},
+			),
+			m: fromInputs(
+				input{"A", []Element{"x"}},
+				input{"B", []Element{"x"}},
+			),
 			essential: smap(),
 		},
 		simok: false,
 		min:   [][]Subset{{"A"}, {"B"}},
 	},
 	"B contains A": {
-		c: fromInputs(
-			input{"A", []Element{"x"}},
-			input{"B", []Element{"x", "y", "z"}},
-		),
+		c: &Cover{
+			in: fromInputs(
+				input{"A", []Element{"x"}},
+				input{"B", []Element{"x", "y", "z"}},
+			),
+			m: fromInputs(
+				input{"A", []Element{"x"}},
+				input{"B", []Element{"x", "y", "z"}},
+			),
+			essential: smap(),
+		},
 		s: &Cover{
-			inss: map[Subset]eset{"A": emap("x"), "B": emap("x", "y", "z")},
-			ines: map[Element]sset{"x": smap("A", "B"), "y": smap("B"), "z": smap("B")},
-			ss:   map[Subset]eset{"B": emap("x", "y", "z")},
-			es:   map[Element]sset{"x": smap("B"), "y": smap("B"), "z": smap("B")},
-
+			in: fromInputs(
+				input{"A", []Element{"x"}},
+				input{"B", []Element{"x", "y", "z"}},
+			),
+			m: fromInputs(
+				input{"B", []Element{"x", "y", "z"}},
+			),
 			essential: smap(),
 		},
 		sok: true,
 		e: &Cover{
-			inss: map[Subset]eset{"A": emap("x"), "B": emap("x", "y", "z")},
-			ines: map[Element]sset{"x": smap("A", "B"), "y": smap("B"), "z": smap("B")},
-			ss:   map[Subset]eset{"A": emap()},
-			es:   map[Element]sset{},
+			in: fromInputs(
+				input{"A", []Element{"x"}},
+				input{"B", []Element{"x", "y", "z"}},
+			),
+			m: bipartite.New(),
 
 			essential: smap("B"),
 		},
 		eok: true,
 		sim: &Cover{
-			inss: map[Subset]eset{"A": emap("x"), "B": emap("x", "y", "z")},
-			ines: map[Element]sset{"x": smap("A", "B"), "y": smap("B"), "z": smap("B")},
-			ss:   map[Subset]eset{},
-			es:   map[Element]sset{},
+			in: fromInputs(
+				input{"A", []Element{"x"}},
+				input{"B", []Element{"x", "y", "z"}},
+			),
+			m: bipartite.New(),
 
 			essential: smap("B"),
 		},
@@ -568,125 +574,82 @@ var coverTests = map[string]struct {
 		min:   [][]Subset{{"B"}},
 	},
 	"seven-segment A": {
-		c: fromInputs(
-			input{"0-1-", []Element{2, 3, 6, 7}},
-			input{"01-1", []Element{5, 7}},
-			input{"-0-0", []Element{0, 2, 8, 10}},
-			input{"--10", []Element{2, 6, 10, 14}},
-			input{"-11-", []Element{6, 7, 14, 15}},
-			input{"100-", []Element{8, 9}},
-			input{"1--0", []Element{8, 10, 12, 14}},
-			input{"11-0", []Element{12, 14}},
-		),
+		c: &Cover{
+			in: fromInputs(
+				input{"0-1-", []Element{2, 3, 6, 7}},
+				input{"01-1", []Element{5, 7}},
+				input{"-0-0", []Element{0, 2, 8, 10}},
+				input{"--10", []Element{2, 6, 10, 14}},
+				input{"-11-", []Element{6, 7, 14, 15}},
+				input{"100-", []Element{8, 9}},
+				input{"1--0", []Element{8, 10, 12, 14}},
+				input{"11-0", []Element{12, 14}},
+			),
+			m: fromInputs(
+				input{"0-1-", []Element{2, 3, 6, 7}},
+				input{"01-1", []Element{5, 7}},
+				input{"-0-0", []Element{0, 2, 8, 10}},
+				input{"--10", []Element{2, 6, 10, 14}},
+				input{"-11-", []Element{6, 7, 14, 15}},
+				input{"100-", []Element{8, 9}},
+				input{"1--0", []Element{8, 10, 12, 14}},
+				input{"11-0", []Element{12, 14}},
+			),
+			essential: smap(),
+		},
 		s: &Cover{
-			inss: map[Subset]eset{
-				"0-1-": emap(2, 3, 6, 7),
-				"01-1": emap(5, 7),
-				"-0-0": emap(0, 2, 8, 10),
-				"--10": emap(2, 6, 10, 14),
-				"-11-": emap(6, 7, 14, 15),
-				"100-": emap(8, 9),
-				"1--0": emap(8, 10, 12, 14),
-				"11-0": emap(12, 14),
-			},
-			ines: map[Element]sset{
-				0:  smap("-0-0"),
-				2:  smap("0-1-", "-0-0", "--10"),
-				3:  smap("0-1-"),
-				5:  smap("01-1"),
-				6:  smap("0-1-", "--10", "-11-"),
-				7:  smap("0-1-", "01-1", "-11-"),
-				8:  smap("-0-0", "100-", "1--0"),
-				9:  smap("100-"),
-				10: smap("-0-0", "--10", "1--0"),
-				12: smap("1--0", "11-0"),
-				14: smap("--10", "-11-", "1--0", "11-0"),
-				15: smap("-11-"),
-			},
-			ss: map[Subset]eset{
-				"0-1-": emap(2, 3, 6, 7),
-				"01-1": emap(5, 7),
-				"-0-0": emap(0, 2, 8, 10),
-				"--10": emap(2, 6, 10, 14),
-				"-11-": emap(6, 7, 14, 15),
-				"100-": emap(8, 9),
-				"1--0": emap(8, 10, 12, 14),
-			},
-			es: map[Element]sset{
-				0:  smap("-0-0"),
-				2:  smap("0-1-", "-0-0", "--10"),
-				3:  smap("0-1-"),
-				5:  smap("01-1"),
-				6:  smap("0-1-", "--10", "-11-"),
-				7:  smap("0-1-", "01-1", "-11-"),
-				8:  smap("-0-0", "100-", "1--0"),
-				9:  smap("100-"),
-				10: smap("-0-0", "--10", "1--0"),
-				12: smap("1--0"),
-				14: smap("--10", "-11-", "1--0"),
-				15: smap("-11-"),
-			},
+			in: fromInputs(
+				input{"0-1-", []Element{2, 3, 6, 7}},
+				input{"01-1", []Element{5, 7}},
+				input{"-0-0", []Element{0, 2, 8, 10}},
+				input{"--10", []Element{2, 6, 10, 14}},
+				input{"-11-", []Element{6, 7, 14, 15}},
+				input{"100-", []Element{8, 9}},
+				input{"1--0", []Element{8, 10, 12, 14}},
+				input{"11-0", []Element{12, 14}},
+			),
+			m: fromInputs(
+				input{"0-1-", []Element{2, 3, 6, 7}},
+				input{"01-1", []Element{5, 7}},
+				input{"-0-0", []Element{0, 2, 8, 10}},
+				input{"--10", []Element{2, 6, 10, 14}},
+				input{"-11-", []Element{6, 7, 14, 15}},
+				input{"100-", []Element{8, 9}},
+				input{"1--0", []Element{8, 10, 12, 14}},
+			),
 			essential: smap(),
 		},
 		sok: true,
 		e: &Cover{
-			inss: map[Subset]eset{
-				"0-1-": emap(2, 3, 6, 7),
-				"01-1": emap(5, 7),
-				"-0-0": emap(0, 2, 8, 10),
-				"--10": emap(2, 6, 10, 14),
-				"-11-": emap(6, 7, 14, 15),
-				"100-": emap(8, 9),
-				"1--0": emap(8, 10, 12, 14),
-				"11-0": emap(12, 14),
-			},
-			ines: map[Element]sset{
-				0:  smap("-0-0"),
-				2:  smap("0-1-", "-0-0", "--10"),
-				3:  smap("0-1-"),
-				5:  smap("01-1"),
-				6:  smap("0-1-", "--10", "-11-"),
-				7:  smap("0-1-", "01-1", "-11-"),
-				8:  smap("-0-0", "100-", "1--0"),
-				9:  smap("100-"),
-				10: smap("-0-0", "--10", "1--0"),
-				12: smap("1--0", "11-0"),
-				14: smap("--10", "-11-", "1--0", "11-0"),
-				15: smap("-11-"),
-			},
-			ss: map[Subset]eset{"--10": emap(), "1--0": emap(12), "11-0": emap(12)},
-			es: map[Element]sset{12: smap("1--0", "11-0")},
-
+			in: fromInputs(
+				input{"0-1-", []Element{2, 3, 6, 7}},
+				input{"01-1", []Element{5, 7}},
+				input{"-0-0", []Element{0, 2, 8, 10}},
+				input{"--10", []Element{2, 6, 10, 14}},
+				input{"-11-", []Element{6, 7, 14, 15}},
+				input{"100-", []Element{8, 9}},
+				input{"1--0", []Element{8, 10, 12, 14}},
+				input{"11-0", []Element{12, 14}},
+			),
+			m: fromInputs(
+				input{"1--0", []Element{12}},
+				input{"11-0", []Element{12}},
+			),
 			essential: smap("0-1-", "01-1", "-0-0", "-11-", "100-"),
 		},
 		eok: true,
 		sim: &Cover{
-			inss: map[Subset]eset{
-				"0-1-": emap(2, 3, 6, 7),
-				"01-1": emap(5, 7),
-				"-0-0": emap(0, 2, 8, 10),
-				"--10": emap(2, 6, 10, 14),
-				"-11-": emap(6, 7, 14, 15),
-				"100-": emap(8, 9),
-				"1--0": emap(8, 10, 12, 14),
-				"11-0": emap(12, 14),
-			},
-			ines: map[Element]sset{
-				0:  smap("-0-0"),
-				2:  smap("0-1-", "-0-0", "--10"),
-				3:  smap("0-1-"),
-				5:  smap("01-1"),
-				6:  smap("0-1-", "--10", "-11-"),
-				7:  smap("0-1-", "01-1", "-11-"),
-				8:  smap("-0-0", "100-", "1--0"),
-				9:  smap("100-"),
-				10: smap("-0-0", "--10", "1--0"),
-				12: smap("1--0", "11-0"),
-				14: smap("--10", "-11-", "1--0", "11-0"),
-				15: smap("-11-"),
-			},
-			ss: map[Subset]eset{"--10": emap()},
-			es: map[Element]sset{},
+			in: fromInputs(
+				input{"0-1-", []Element{2, 3, 6, 7}},
+				input{"01-1", []Element{5, 7}},
+				input{"-0-0", []Element{0, 2, 8, 10}},
+				input{"--10", []Element{2, 6, 10, 14}},
+				input{"-11-", []Element{6, 7, 14, 15}},
+				input{"100-", []Element{8, 9}},
+				input{"1--0", []Element{8, 10, 12, 14}},
+				input{"11-0", []Element{12, 14}},
+			),
+			m: bipartite.New(),
 
 			essential: smap("0-1-", "01-1", "-0-0", "-11-", "100-", "1--0"),
 		},
@@ -694,117 +657,74 @@ var coverTests = map[string]struct {
 		min:   [][]Subset{{"0-1-", "01-1", "-0-0", "-11-", "100-", "1--0"}},
 	},
 	"seven-segment B": {
-		c: fromInputs(
-			input{"00--", []Element{0, 1, 2, 3}},
-			input{"0-00", []Element{0, 4}},
-			input{"0-11", []Element{3, 7}},
-			input{"-00-", []Element{0, 1, 8, 9}},
-			input{"-0-0", []Element{0, 2, 8, 10}},
-			input{"1-01", []Element{9, 13}},
-		),
+		c: &Cover{
+			in: fromInputs(
+				input{"00--", []Element{0, 1, 2, 3}},
+				input{"0-00", []Element{0, 4}},
+				input{"0-11", []Element{3, 7}},
+				input{"-00-", []Element{0, 1, 8, 9}},
+				input{"-0-0", []Element{0, 2, 8, 10}},
+				input{"1-01", []Element{9, 13}},
+			),
+			m: fromInputs(
+				input{"00--", []Element{0, 1, 2, 3}},
+				input{"0-00", []Element{0, 4}},
+				input{"0-11", []Element{3, 7}},
+				input{"-00-", []Element{0, 1, 8, 9}},
+				input{"-0-0", []Element{0, 2, 8, 10}},
+				input{"1-01", []Element{9, 13}},
+			),
+			essential: smap(),
+		},
 		s: &Cover{
-			inss: map[Subset]eset{
-				"00--": emap(0, 1, 2, 3),
-				"0-00": emap(0, 4),
-				"0-11": emap(3, 7),
-				"-00-": emap(0, 1, 8, 9),
-				"-0-0": emap(0, 2, 8, 10),
-				"1-01": emap(9, 13),
-			},
-			ines: map[Element]sset{
-				0:  smap("00--", "0-00", "-00-", "-0-0"),
-				1:  smap("00--", "-00-"),
-				2:  smap("00--", "-0-0"),
-				3:  smap("00--", "0-11"),
-				4:  smap("0-00"),
-				7:  smap("0-11"),
-				8:  smap("-00-", "-0-0"),
-				9:  smap("-00-", "1-01"),
-				10: smap("-0-0"),
-				13: smap("1-01"),
-			},
-			ss: map[Subset]eset{
-				"00--": emap(0, 1, 2, 3),
-				"0-00": emap(0, 4),
-				"0-11": emap(3, 7),
-				"-00-": emap(0, 1, 8, 9),
-				"-0-0": emap(0, 2, 8, 10),
-				"1-01": emap(9, 13),
-			},
-			es: map[Element]sset{
-				0:  smap("00--", "0-00", "-00-", "-0-0"),
-				1:  smap("00--", "-00-"),
-				2:  smap("00--", "-0-0"),
-				3:  smap("00--", "0-11"),
-				4:  smap("0-00"),
-				7:  smap("0-11"),
-				8:  smap("-00-", "-0-0"),
-				9:  smap("-00-", "1-01"),
-				10: smap("-0-0"),
-				13: smap("1-01"),
-			},
+			in: fromInputs(
+				input{"00--", []Element{0, 1, 2, 3}},
+				input{"0-00", []Element{0, 4}},
+				input{"0-11", []Element{3, 7}},
+				input{"-00-", []Element{0, 1, 8, 9}},
+				input{"-0-0", []Element{0, 2, 8, 10}},
+				input{"1-01", []Element{9, 13}},
+			),
+			m: fromInputs(
+				input{"00--", []Element{0, 1, 2, 3}},
+				input{"0-00", []Element{0, 4}},
+				input{"0-11", []Element{3, 7}},
+				input{"-00-", []Element{0, 1, 8, 9}},
+				input{"-0-0", []Element{0, 2, 8, 10}},
+				input{"1-01", []Element{9, 13}},
+			),
 			essential: smap(),
 		},
 		sok: false,
 		e: &Cover{
-			inss: map[Subset]eset{
-				"00--": emap(0, 1, 2, 3),
-				"0-00": emap(0, 4),
-				"0-11": emap(3, 7),
-				"-00-": emap(0, 1, 8, 9),
-				"-0-0": emap(0, 2, 8, 10),
-				"1-01": emap(9, 13),
-			},
-			ines: map[Element]sset{
-				0:  smap("00--", "0-00", "-00-", "-0-0"),
-				1:  smap("00--", "-00-"),
-				2:  smap("00--", "-0-0"),
-				3:  smap("00--", "0-11"),
-				4:  smap("0-00"),
-				7:  smap("0-11"),
-				8:  smap("-00-", "-0-0"),
-				9:  smap("-00-", "1-01"),
-				10: smap("-0-0"),
-				13: smap("1-01"),
-			},
-			ss: map[Subset]eset{
-				"00--": emap(1),
-				"-00-": emap(1),
-			},
-			es: map[Element]sset{
-				1: smap("00--", "-00-"),
-			},
+			in: fromInputs(
+				input{"00--", []Element{0, 1, 2, 3}},
+				input{"0-00", []Element{0, 4}},
+				input{"0-11", []Element{3, 7}},
+				input{"-00-", []Element{0, 1, 8, 9}},
+				input{"-0-0", []Element{0, 2, 8, 10}},
+				input{"1-01", []Element{9, 13}},
+			),
+			m: fromInputs(
+				input{"00--", []Element{1}},
+				input{"-00-", []Element{1}},
+			),
 			essential: smap("0-00", "0-11", "-0-0", "1-01"),
 		},
 		eok: true,
 		sim: &Cover{
-			inss: map[Subset]eset{
-				"00--": emap(0, 1, 2, 3),
-				"0-00": emap(0, 4),
-				"0-11": emap(3, 7),
-				"-00-": emap(0, 1, 8, 9),
-				"-0-0": emap(0, 2, 8, 10),
-				"1-01": emap(9, 13),
-			},
-			ines: map[Element]sset{
-				0:  smap("00--", "0-00", "-00-", "-0-0"),
-				1:  smap("00--", "-00-"),
-				2:  smap("00--", "-0-0"),
-				3:  smap("00--", "0-11"),
-				4:  smap("0-00"),
-				7:  smap("0-11"),
-				8:  smap("-00-", "-0-0"),
-				9:  smap("-00-", "1-01"),
-				10: smap("-0-0"),
-				13: smap("1-01"),
-			},
-			ss: map[Subset]eset{
-				"00--": emap(1),
-				"-00-": emap(1),
-			},
-			es: map[Element]sset{
-				1: smap("00--", "-00-"),
-			},
+			in: fromInputs(
+				input{"00--", []Element{0, 1, 2, 3}},
+				input{"0-00", []Element{0, 4}},
+				input{"0-11", []Element{3, 7}},
+				input{"-00-", []Element{0, 1, 8, 9}},
+				input{"-0-0", []Element{0, 2, 8, 10}},
+				input{"1-01", []Element{9, 13}},
+			),
+			m: fromInputs(
+				input{"00--", []Element{1}},
+				input{"-00-", []Element{1}},
+			),
 			essential: smap("0-00", "0-11", "-0-0", "1-01"),
 		},
 		simok: false,
@@ -814,136 +734,84 @@ var coverTests = map[string]struct {
 		},
 	},
 	"seven-segment C": {
-		c: fromInputs(
-			input{"0-0-", []Element{0, 1, 4, 5}},
-			input{"0--1", []Element{1, 3, 5, 7}},
-			input{"01--", []Element{4, 5, 6, 7}},
-			input{"-00-", []Element{0, 1, 8, 9}},
-			input{"-0-1", []Element{1, 3, 9, 11}},
-			input{"--01", []Element{1, 5, 9, 13}},
-			input{"10--", []Element{8, 9, 10, 11}},
-		),
+		c: &Cover{
+			in: fromInputs(
+				input{"0-0-", []Element{0, 1, 4, 5}},
+				input{"0--1", []Element{1, 3, 5, 7}},
+				input{"01--", []Element{4, 5, 6, 7}},
+				input{"-00-", []Element{0, 1, 8, 9}},
+				input{"-0-1", []Element{1, 3, 9, 11}},
+				input{"--01", []Element{1, 5, 9, 13}},
+				input{"10--", []Element{8, 9, 10, 11}},
+			),
+			m: fromInputs(
+				input{"0-0-", []Element{0, 1, 4, 5}},
+				input{"0--1", []Element{1, 3, 5, 7}},
+				input{"01--", []Element{4, 5, 6, 7}},
+				input{"-00-", []Element{0, 1, 8, 9}},
+				input{"-0-1", []Element{1, 3, 9, 11}},
+				input{"--01", []Element{1, 5, 9, 13}},
+				input{"10--", []Element{8, 9, 10, 11}},
+			),
+			essential: smap(),
+		},
 		s: &Cover{
-			inss: map[Subset]eset{
-				"0-0-": emap(0, 1, 4, 5),
-				"0--1": emap(1, 3, 5, 7),
-				"01--": emap(4, 5, 6, 7),
-				"-00-": emap(0, 1, 8, 9),
-				"-0-1": emap(1, 3, 9, 11),
-				"--01": emap(1, 5, 9, 13),
-				"10--": emap(8, 9, 10, 11),
-			},
-			ines: map[Element]sset{
-				0:  smap("0-0-", "-00-"),
-				1:  smap("0-0-", "0--1", "-00-", "-0-1", "--01"),
-				3:  smap("0--1", "-0-1"),
-				4:  smap("0-0-", "01--"),
-				5:  smap("0-0-", "0--1", "01--", "--01"),
-				6:  smap("01--"),
-				7:  smap("0--1", "01--"),
-				8:  smap("-00-", "10--"),
-				9:  smap("-00-", "-0-1", "--01", "10--"),
-				10: smap("10--"),
-				11: smap("-0-1", "10--"),
-				13: smap("--01"),
-			},
-			ss: map[Subset]eset{
-				"0-0-": emap(0, 1, 4, 5),
-				"0--1": emap(1, 3, 5, 7),
-				"01--": emap(4, 5, 6, 7),
-				"-00-": emap(0, 1, 8, 9),
-				"-0-1": emap(1, 3, 9, 11),
-				"--01": emap(1, 5, 9, 13),
-				"10--": emap(8, 9, 10, 11),
-			},
-			es: map[Element]sset{
-				0:  smap("0-0-", "-00-"),
-				1:  smap("0-0-", "0--1", "-00-", "-0-1", "--01"),
-				3:  smap("0--1", "-0-1"),
-				4:  smap("0-0-", "01--"),
-				5:  smap("0-0-", "0--1", "01--", "--01"),
-				6:  smap("01--"),
-				7:  smap("0--1", "01--"),
-				8:  smap("-00-", "10--"),
-				9:  smap("-00-", "-0-1", "--01", "10--"),
-				10: smap("10--"),
-				11: smap("-0-1", "10--"),
-				13: smap("--01"),
-			},
+			in: fromInputs(
+				input{"0-0-", []Element{0, 1, 4, 5}},
+				input{"0--1", []Element{1, 3, 5, 7}},
+				input{"01--", []Element{4, 5, 6, 7}},
+				input{"-00-", []Element{0, 1, 8, 9}},
+				input{"-0-1", []Element{1, 3, 9, 11}},
+				input{"--01", []Element{1, 5, 9, 13}},
+				input{"10--", []Element{8, 9, 10, 11}},
+			),
+			m: fromInputs(
+				input{"0-0-", []Element{0, 1, 4, 5}},
+				input{"0--1", []Element{1, 3, 5, 7}},
+				input{"01--", []Element{4, 5, 6, 7}},
+				input{"-00-", []Element{0, 1, 8, 9}},
+				input{"-0-1", []Element{1, 3, 9, 11}},
+				input{"--01", []Element{1, 5, 9, 13}},
+				input{"10--", []Element{8, 9, 10, 11}},
+			),
 			essential: smap(),
 		},
 		sok: false,
 		e: &Cover{
-			inss: map[Subset]eset{
-				"0-0-": emap(0, 1, 4, 5),
-				"0--1": emap(1, 3, 5, 7),
-				"01--": emap(4, 5, 6, 7),
-				"-00-": emap(0, 1, 8, 9),
-				"-0-1": emap(1, 3, 9, 11),
-				"--01": emap(1, 5, 9, 13),
-				"10--": emap(8, 9, 10, 11),
-			},
-			ines: map[Element]sset{
-				0:  smap("0-0-", "-00-"),
-				1:  smap("0-0-", "0--1", "-00-", "-0-1", "--01"),
-				3:  smap("0--1", "-0-1"),
-				4:  smap("0-0-", "01--"),
-				5:  smap("0-0-", "0--1", "01--", "--01"),
-				6:  smap("01--"),
-				7:  smap("0--1", "01--"),
-				8:  smap("-00-", "10--"),
-				9:  smap("-00-", "-0-1", "--01", "10--"),
-				10: smap("10--"),
-				11: smap("-0-1", "10--"),
-				13: smap("--01"),
-			},
-			ss: map[Subset]eset{
-				"0-0-": emap(0),
-				"0--1": emap(3),
-				"-00-": emap(0),
-				"-0-1": emap(3),
-			},
-			es: map[Element]sset{
-				0: smap("0-0-", "-00-"),
-				3: smap("0--1", "-0-1"),
-			},
+			in: fromInputs(
+				input{"0-0-", []Element{0, 1, 4, 5}},
+				input{"0--1", []Element{1, 3, 5, 7}},
+				input{"01--", []Element{4, 5, 6, 7}},
+				input{"-00-", []Element{0, 1, 8, 9}},
+				input{"-0-1", []Element{1, 3, 9, 11}},
+				input{"--01", []Element{1, 5, 9, 13}},
+				input{"10--", []Element{8, 9, 10, 11}},
+			),
+			m: fromInputs(
+				input{"0-0-", []Element{0}},
+				input{"0--1", []Element{3}},
+				input{"-00-", []Element{0}},
+				input{"-0-1", []Element{3}},
+			),
 			essential: smap("01--", "--01", "10--"),
 		},
 		eok: true,
 		sim: &Cover{
-			inss: map[Subset]eset{
-				"0-0-": emap(0, 1, 4, 5),
-				"0--1": emap(1, 3, 5, 7),
-				"01--": emap(4, 5, 6, 7),
-				"-00-": emap(0, 1, 8, 9),
-				"-0-1": emap(1, 3, 9, 11),
-				"--01": emap(1, 5, 9, 13),
-				"10--": emap(8, 9, 10, 11),
-			},
-			ines: map[Element]sset{
-				0:  smap("0-0-", "-00-"),
-				1:  smap("0-0-", "0--1", "-00-", "-0-1", "--01"),
-				3:  smap("0--1", "-0-1"),
-				4:  smap("0-0-", "01--"),
-				5:  smap("0-0-", "0--1", "01--", "--01"),
-				6:  smap("01--"),
-				7:  smap("0--1", "01--"),
-				8:  smap("-00-", "10--"),
-				9:  smap("-00-", "-0-1", "--01", "10--"),
-				10: smap("10--"),
-				11: smap("-0-1", "10--"),
-				13: smap("--01"),
-			},
-			ss: map[Subset]eset{
-				"0-0-": emap(0),
-				"0--1": emap(3),
-				"-00-": emap(0),
-				"-0-1": emap(3),
-			},
-			es: map[Element]sset{
-				0: smap("0-0-", "-00-"),
-				3: smap("0--1", "-0-1"),
-			},
+			in: fromInputs(
+				input{"0-0-", []Element{0, 1, 4, 5}},
+				input{"0--1", []Element{1, 3, 5, 7}},
+				input{"01--", []Element{4, 5, 6, 7}},
+				input{"-00-", []Element{0, 1, 8, 9}},
+				input{"-0-1", []Element{1, 3, 9, 11}},
+				input{"--01", []Element{1, 5, 9, 13}},
+				input{"10--", []Element{8, 9, 10, 11}},
+			),
+			m: fromInputs(
+				input{"0-0-", []Element{0}},
+				input{"0--1", []Element{3}},
+				input{"-00-", []Element{0}},
+				input{"-0-1", []Element{3}},
+			),
 			essential: smap("01--", "--01", "10--"),
 		},
 		simok: false,
@@ -955,143 +823,99 @@ var coverTests = map[string]struct {
 		},
 	},
 	"seven-segment D": {
-		c: fromInputs(
-			input{"001-", []Element{2, 3}},
-			input{"00-0", []Element{0, 2}},
-			input{"0-10", []Element{2, 6}},
-			input{"-000", []Element{0, 8}},
-			input{"-011", []Element{3, 11}},
-			input{"-101", []Element{5, 13}},
-			input{"-110", []Element{6, 14}},
-			input{"10-1", []Element{9, 11}},
-			input{"1-0-", []Element{8, 9, 12, 13}},
-			input{"1-01", []Element{9, 13}},
-		),
+		c: &Cover{
+			in: fromInputs(
+				input{"001-", []Element{2, 3}},
+				input{"00-0", []Element{0, 2}},
+				input{"0-10", []Element{2, 6}},
+				input{"-000", []Element{0, 8}},
+				input{"-011", []Element{3, 11}},
+				input{"-101", []Element{5, 13}},
+				input{"-110", []Element{6, 14}},
+				input{"10-1", []Element{9, 11}},
+				input{"1-0-", []Element{8, 9, 12, 13}},
+				input{"1-01", []Element{9, 13}},
+			),
+			m: fromInputs(
+				input{"001-", []Element{2, 3}},
+				input{"00-0", []Element{0, 2}},
+				input{"0-10", []Element{2, 6}},
+				input{"-000", []Element{0, 8}},
+				input{"-011", []Element{3, 11}},
+				input{"-101", []Element{5, 13}},
+				input{"-110", []Element{6, 14}},
+				input{"10-1", []Element{9, 11}},
+				input{"1-0-", []Element{8, 9, 12, 13}},
+				input{"1-01", []Element{9, 13}},
+			),
+			essential: smap(),
+		},
 		s: &Cover{
-			inss: map[Subset]eset{
-				"00-0": emap(0, 2),
-				"001-": emap(2, 3),
-				"0-10": emap(2, 6),
-				"-000": emap(0, 8),
-				"-011": emap(3, 11),
-				"-101": emap(5, 13),
-				"-110": emap(6, 14),
-				"10-1": emap(9, 11),
-				"1-0-": emap(8, 9, 12, 13),
-				"1-01": emap(9, 13),
-			},
-			ines: map[Element]sset{
-				0:  smap("00-0", "-000"),
-				2:  smap("00-0", "001-", "0-10"),
-				3:  smap("001-", "-011"),
-				5:  smap("-101"),
-				6:  smap("0-10", "-110"),
-				8:  smap("-000", "1-0-"),
-				9:  smap("10-1", "1-0-", "1-01"),
-				11: smap("-011", "10-1"),
-				12: smap("1-0-"),
-				13: smap("-101", "1-0-", "1-01"),
-				14: smap("-110"),
-			},
-			ss: map[Subset]eset{
-				"00-0": emap(0, 2),
-				"001-": emap(2, 3),
-				"0-10": emap(2, 6),
-				"-000": emap(0, 8),
-				"-011": emap(3, 11),
-				"-101": emap(5, 13),
-				"-110": emap(6, 14),
-				"10-1": emap(9, 11),
-				"1-0-": emap(8, 9, 12, 13),
-			},
-			es: map[Element]sset{
-				0:  smap("00-0", "-000"),
-				2:  smap("00-0", "001-", "0-10"),
-				3:  smap("001-", "-011"),
-				5:  smap("-101"),
-				6:  smap("0-10", "-110"),
-				8:  smap("-000", "1-0-"),
-				9:  smap("10-1", "1-0-"),
-				11: smap("-011", "10-1"),
-				12: smap("1-0-"),
-				13: smap("-101", "1-0-"),
-				14: smap("-110"),
-			},
+			in: fromInputs(
+				input{"00-0", []Element{0, 2}},
+				input{"001-", []Element{2, 3}},
+				input{"0-10", []Element{2, 6}},
+				input{"-000", []Element{0, 8}},
+				input{"-011", []Element{3, 11}},
+				input{"-101", []Element{5, 13}},
+				input{"-110", []Element{6, 14}},
+				input{"10-1", []Element{9, 11}},
+				input{"1-0-", []Element{8, 9, 12, 13}},
+				input{"1-01", []Element{9, 13}},
+			),
+			m: fromInputs(
+				input{"00-0", []Element{0, 2}},
+				input{"001-", []Element{2, 3}},
+				input{"0-10", []Element{2, 6}},
+				input{"-000", []Element{0, 8}},
+				input{"-011", []Element{3, 11}},
+				input{"-101", []Element{5, 13}},
+				input{"-110", []Element{6, 14}},
+				input{"10-1", []Element{9, 11}},
+				input{"1-0-", []Element{8, 9, 12, 13}},
+			),
 			essential: smap(),
 		},
 		sok: true,
 		e: &Cover{
-			inss: map[Subset]eset{
-				"00-0": emap(0, 2),
-				"001-": emap(2, 3),
-				"0-10": emap(2, 6),
-				"-000": emap(0, 8),
-				"-011": emap(3, 11),
-				"-101": emap(5, 13),
-				"-110": emap(6, 14),
-				"10-1": emap(9, 11),
-				"1-0-": emap(8, 9, 12, 13),
-				"1-01": emap(9, 13),
-			},
-			ines: map[Element]sset{
-				0:  smap("00-0", "-000"),
-				2:  smap("00-0", "001-", "0-10"),
-				3:  smap("001-", "-011"),
-				5:  smap("-101"),
-				6:  smap("0-10", "-110"),
-				8:  smap("-000", "1-0-"),
-				9:  smap("10-1", "1-0-", "1-01"),
-				11: smap("-011", "10-1"),
-				12: smap("1-0-"),
-				13: smap("-101", "1-0-", "1-01"),
-				14: smap("-110"),
-			},
-			ss: map[Subset]eset{
-				"00-0": emap(0, 2),
-				"001-": emap(2, 3),
-				"0-10": emap(2),
-				"-000": emap(0),
-				"-011": emap(3, 11),
-				"10-1": emap(11),
-				"1-01": emap(),
-			},
-			es: map[Element]sset{
-				0:  smap("00-0", "-000"),
-				2:  smap("00-0", "001-", "0-10"),
-				3:  smap("001-", "-011"),
-				11: smap("-011", "10-1"),
-			},
+			in: fromInputs(
+				input{"00-0", []Element{0, 2}},
+				input{"001-", []Element{2, 3}},
+				input{"0-10", []Element{2, 6}},
+				input{"-000", []Element{0, 8}},
+				input{"-011", []Element{3, 11}},
+				input{"-101", []Element{5, 13}},
+				input{"-110", []Element{6, 14}},
+				input{"10-1", []Element{9, 11}},
+				input{"1-0-", []Element{8, 9, 12, 13}},
+				input{"1-01", []Element{9, 13}},
+			),
+			m: fromInputs(
+				input{"00-0", []Element{0, 2}},
+				input{"001-", []Element{2, 3}},
+				input{"0-10", []Element{2}},
+				input{"-000", []Element{0}},
+				input{"-011", []Element{3, 11}},
+				input{"10-1", []Element{11}},
+				input{"1-01", []Element{}},
+			),
 			essential: smap("-101", "-110", "1-0-"),
 		},
 		eok: true,
 		sim: &Cover{
-			inss: map[Subset]eset{
-				"00-0": emap(0, 2),
-				"001-": emap(2, 3),
-				"0-10": emap(2, 6),
-				"-000": emap(0, 8),
-				"-011": emap(3, 11),
-				"-101": emap(5, 13),
-				"-110": emap(6, 14),
-				"10-1": emap(9, 11),
-				"1-0-": emap(8, 9, 12, 13),
-				"1-01": emap(9, 13),
-			},
-			ines: map[Element]sset{
-				0:  smap("00-0", "-000"),
-				2:  smap("00-0", "001-", "0-10"),
-				3:  smap("001-", "-011"),
-				5:  smap("-101"),
-				6:  smap("0-10", "-110"),
-				8:  smap("-000", "1-0-"),
-				9:  smap("10-1", "1-0-", "1-01"),
-				11: smap("-011", "10-1"),
-				12: smap("1-0-"),
-				13: smap("-101", "1-0-", "1-01"),
-				14: smap("-110"),
-			},
-			ss: map[Subset]eset{"001-": emap()},
-			es: map[Element]sset{},
+			in: fromInputs(
+				input{"00-0", []Element{0, 2}},
+				input{"001-", []Element{2, 3}},
+				input{"0-10", []Element{2, 6}},
+				input{"-000", []Element{0, 8}},
+				input{"-011", []Element{3, 11}},
+				input{"-101", []Element{5, 13}},
+				input{"-110", []Element{6, 14}},
+				input{"10-1", []Element{9, 11}},
+				input{"1-0-", []Element{8, 9, 12, 13}},
+				input{"1-01", []Element{9, 13}},
+			),
+			m: bipartite.New(),
 
 			essential: smap("-101", "-110", "00-0", "-011", "1-0-"),
 		},
@@ -1099,154 +923,94 @@ var coverTests = map[string]struct {
 		min:   [][]Subset{{"-101", "-110", "00-0", "-011", "1-0-"}},
 	},
 	"seven-segment G": {
-		c: fromInputs(
-			input{"010-", []Element{4, 5}},
-			input{"01-0", []Element{4, 6}},
-			input{"--10", []Element{2, 6, 10, 14}},
-			input{"-01-", []Element{2, 3, 10, 11}},
-			input{"-101", []Element{5, 13}},
-			input{"10--", []Element{8, 9, 10, 11}},
-			input{"1--1", []Element{9, 11, 13, 15}},
-			input{"1-1-", []Element{10, 11, 14, 15}},
-		),
+		c: &Cover{
+			in: fromInputs(
+				input{"010-", []Element{4, 5}},
+				input{"01-0", []Element{4, 6}},
+				input{"--10", []Element{2, 6, 10, 14}},
+				input{"-01-", []Element{2, 3, 10, 11}},
+				input{"-101", []Element{5, 13}},
+				input{"10--", []Element{8, 9, 10, 11}},
+				input{"1--1", []Element{9, 11, 13, 15}},
+				input{"1-1-", []Element{10, 11, 14, 15}},
+			),
+			m: fromInputs(
+				input{"010-", []Element{4, 5}},
+				input{"01-0", []Element{4, 6}},
+				input{"--10", []Element{2, 6, 10, 14}},
+				input{"-01-", []Element{2, 3, 10, 11}},
+				input{"-101", []Element{5, 13}},
+				input{"10--", []Element{8, 9, 10, 11}},
+				input{"1--1", []Element{9, 11, 13, 15}},
+				input{"1-1-", []Element{10, 11, 14, 15}},
+			),
+			essential: smap(),
+		},
 		s: &Cover{
-			inss: map[Subset]eset{
-				"010-": emap(4, 5),
-				"01-0": emap(4, 6),
-				"--10": emap(2, 6, 10, 14),
-				"-01-": emap(2, 3, 10, 11),
-				"-101": emap(5, 13),
-				"10--": emap(8, 9, 10, 11),
-				"1--1": emap(9, 11, 13, 15),
-				"1-1-": emap(10, 11, 14, 15),
-			},
-			ines: map[Element]sset{
-				2:  smap("--10", "-01-"),
-				3:  smap("-01-"),
-				4:  smap("010-", "01-0"),
-				5:  smap("-101", "010-"),
-				6:  smap("01-0", "--10"),
-				8:  smap("10--"),
-				9:  smap("10--", "1--1"),
-				10: smap("--10", "-01-", "10--", "1-1-"),
-				11: smap("-01-", "10--", "1--1", "1-1-"),
-				13: smap("-101", "1--1"),
-				14: smap("--10", "1-1-"),
-				15: smap("1--1", "1-1-"),
-			},
-			ss: map[Subset]eset{
-				"010-": emap(4, 5),
-				"01-0": emap(4, 6),
-				"--10": emap(2, 6, 10, 14),
-				"-01-": emap(2, 3, 10, 11),
-				"-101": emap(5, 13),
-				"10--": emap(8, 9, 10, 11),
-				"1--1": emap(9, 11, 13, 15),
-				"1-1-": emap(10, 11, 14, 15),
-			},
-			es: map[Element]sset{
-				2:  smap("--10", "-01-"),
-				3:  smap("-01-"),
-				4:  smap("010-", "01-0"),
-				5:  smap("-101", "010-"),
-				6:  smap("01-0", "--10"),
-				8:  smap("10--"),
-				9:  smap("10--", "1--1"),
-				10: smap("--10", "-01-", "10--", "1-1-"),
-				11: smap("-01-", "10--", "1--1", "1-1-"),
-				13: smap("-101", "1--1"),
-				14: smap("--10", "1-1-"),
-				15: smap("1--1", "1-1-"),
-			},
+			in: fromInputs(
+				input{"010-", []Element{4, 5}},
+				input{"01-0", []Element{4, 6}},
+				input{"--10", []Element{2, 6, 10, 14}},
+				input{"-01-", []Element{2, 3, 10, 11}},
+				input{"-101", []Element{5, 13}},
+				input{"10--", []Element{8, 9, 10, 11}},
+				input{"1--1", []Element{9, 11, 13, 15}},
+				input{"1-1-", []Element{10, 11, 14, 15}},
+			),
+			m: fromInputs(
+				input{"010-", []Element{4, 5}},
+				input{"01-0", []Element{4, 6}},
+				input{"--10", []Element{2, 6, 10, 14}},
+				input{"-01-", []Element{2, 3, 10, 11}},
+				input{"-101", []Element{5, 13}},
+				input{"10--", []Element{8, 9, 10, 11}},
+				input{"1--1", []Element{9, 11, 13, 15}},
+				input{"1-1-", []Element{10, 11, 14, 15}},
+			),
 			essential: smap(),
 		},
 		sok: false,
 		e: &Cover{
-			inss: map[Subset]eset{
-				"010-": emap(4, 5),
-				"01-0": emap(4, 6),
-				"--10": emap(2, 6, 10, 14),
-				"-01-": emap(2, 3, 10, 11),
-				"-101": emap(5, 13),
-				"10--": emap(8, 9, 10, 11),
-				"1--1": emap(9, 11, 13, 15),
-				"1-1-": emap(10, 11, 14, 15),
-			},
-			ines: map[Element]sset{
-				2:  smap("--10", "-01-"),
-				3:  smap("-01-"),
-				4:  smap("010-", "01-0"),
-				5:  smap("-101", "010-"),
-				6:  smap("01-0", "--10"),
-				8:  smap("10--"),
-				9:  smap("10--", "1--1"),
-				10: smap("--10", "-01-", "10--", "1-1-"),
-				11: smap("-01-", "10--", "1--1", "1-1-"),
-				13: smap("-101", "1--1"),
-				14: smap("--10", "1-1-"),
-				15: smap("1--1", "1-1-"),
-			},
-			ss: map[Subset]eset{
-				"010-": emap(4, 5),
-				"01-0": emap(4, 6),
-				"--10": emap(6, 14),
-				"-101": emap(5, 13),
-				"1--1": emap(13, 15),
-				"1-1-": emap(14, 15),
-			},
-			es: map[Element]sset{
-				4:  smap("010-", "01-0"),
-				5:  smap("-101", "010-"),
-				6:  smap("01-0", "--10"),
-				13: smap("-101", "1--1"),
-				14: smap("--10", "1-1-"),
-				15: smap("1--1", "1-1-"),
-			},
+			in: fromInputs(
+				input{"010-", []Element{4, 5}},
+				input{"01-0", []Element{4, 6}},
+				input{"--10", []Element{2, 6, 10, 14}},
+				input{"-01-", []Element{2, 3, 10, 11}},
+				input{"-101", []Element{5, 13}},
+				input{"10--", []Element{8, 9, 10, 11}},
+				input{"1--1", []Element{9, 11, 13, 15}},
+				input{"1-1-", []Element{10, 11, 14, 15}},
+			),
+			m: fromInputs(
+				input{"010-", []Element{4, 5}},
+				input{"01-0", []Element{4, 6}},
+				input{"--10", []Element{6, 14}},
+				input{"-101", []Element{5, 13}},
+				input{"1--1", []Element{13, 15}},
+				input{"1-1-", []Element{14, 15}},
+			),
 			essential: smap("-01-", "10--"),
 		},
 		eok: true,
 		sim: &Cover{
-			inss: map[Subset]eset{
-				"010-": emap(4, 5),
-				"01-0": emap(4, 6),
-				"--10": emap(2, 6, 10, 14),
-				"-01-": emap(2, 3, 10, 11),
-				"-101": emap(5, 13),
-				"10--": emap(8, 9, 10, 11),
-				"1--1": emap(9, 11, 13, 15),
-				"1-1-": emap(10, 11, 14, 15),
-			},
-			ines: map[Element]sset{
-				2:  smap("--10", "-01-"),
-				3:  smap("-01-"),
-				4:  smap("010-", "01-0"),
-				5:  smap("-101", "010-"),
-				6:  smap("01-0", "--10"),
-				8:  smap("10--"),
-				9:  smap("10--", "1--1"),
-				10: smap("--10", "-01-", "10--", "1-1-"),
-				11: smap("-01-", "10--", "1--1", "1-1-"),
-				13: smap("-101", "1--1"),
-				14: smap("--10", "1-1-"),
-				15: smap("1--1", "1-1-"),
-			},
-			ss: map[Subset]eset{
-				"010-": emap(4, 5),
-				"01-0": emap(4, 6),
-				"--10": emap(6, 14),
-				"-101": emap(5, 13),
-				"1-1-": emap(14, 15),
-				"1--1": emap(13, 15),
-			},
-			es: map[Element]sset{
-				4:  smap("010-", "01-0"),
-				5:  smap("-101", "010-"),
-				6:  smap("01-0", "--10"),
-				13: smap("-101", "1--1"),
-				14: smap("--10", "1-1-"),
-				15: smap("1--1", "1-1-"),
-			},
-
+			in: fromInputs(
+				input{"010-", []Element{4, 5}},
+				input{"01-0", []Element{4, 6}},
+				input{"--10", []Element{2, 6, 10, 14}},
+				input{"-01-", []Element{2, 3, 10, 11}},
+				input{"-101", []Element{5, 13}},
+				input{"10--", []Element{8, 9, 10, 11}},
+				input{"1--1", []Element{9, 11, 13, 15}},
+				input{"1-1-", []Element{10, 11, 14, 15}},
+			),
+			m: fromInputs(
+				input{"010-", []Element{4, 5}},
+				input{"01-0", []Element{4, 6}},
+				input{"--10", []Element{6, 14}},
+				input{"-101", []Element{5, 13}},
+				input{"1-1-", []Element{14, 15}},
+				input{"1--1", []Element{13, 15}},
+			),
 			essential: smap("-01-", "10--"),
 		},
 		simok: false,
